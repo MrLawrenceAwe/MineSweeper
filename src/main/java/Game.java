@@ -132,7 +132,7 @@ public class Game {
             return;
         }
 
-        Coordinate coordinate = extractCoordinate(tokens[1], tokens[2]);
+        Coordinate coordinate = decrementBothAxesAndExtractCoordinate(tokens[1], tokens[2]);
         if (coordinate == null || !board.isInBounds(coordinate)) {
             display.displayMessage("Invalid coordinates. Please try again.");
             return;
@@ -176,7 +176,7 @@ public class Game {
         displayHelp(true);
     }
 
-    private Coordinate extractCoordinate(String xStr, String yStr) {
+    Coordinate decrementBothAxesAndExtractCoordinate(String xStr, String yStr) {
         try {
             int x = Integer.parseInt(xStr.trim()) - 1;
             int y = Integer.parseInt(yStr.trim()) - 1;
@@ -316,7 +316,7 @@ public class Game {
         for (Coordinate mineLocation : mineLocations) board.getCell(mineLocation).trigger();
     }
 
-    public void placeMines(ArrayList<Coordinate> locations){
+    public void placeMines(List<Coordinate> locations){
         for (Coordinate location : locations) {
             placeMine(location);
         }
