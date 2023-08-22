@@ -1,25 +1,16 @@
 import java.util.*;
 
-import static java.lang.Thread.sleep;
 
 public class Game {
     private boolean gameOver;
-    private boolean playerWon;
     private Board board;
     private Difficulty difficulty;
     private int numMines;
     private Display display;
     private final Random randomNumberGenerator = new Random();
-    private static final int BEGINNER_MINES = 10;
-    private static final int INTERMEDIATE_MINES = 40;
-    private static final int EXPERT_MINES = 99;
-    ArrayList<Coordinate> mineLocations = new ArrayList<>();
+    private ArrayList<Coordinate> mineLocations;
     private Scanner scanner;
-    private boolean playerHasNotDoneFirstReveal;
-
-    public enum Difficulty {
-        BEGINNER, INTERMEDIATE, EXPERT
-    }
+    private boolean playerHasNotMadeFirstReveal;
 
     public Game() {
         System.out.println("Welcome to Minesweeper!");
@@ -52,68 +43,35 @@ public class Game {
     }
 
     private void setNumMines() {
-        switch (difficulty) {
-            case BEGINNER -> numMines = BEGINNER_MINES;
-            case INTERMEDIATE -> numMines = INTERMEDIATE_MINES;
-            case EXPERT -> numMines = EXPERT_MINES;
-        }
+        this.numMines = difficulty.getNumMines();
     }
-
 
     private void setupNewBoard() {
-        int width, height;
-        switch (difficulty) {
-            case BEGINNER -> {
-                width = 9;
-                height = 9;
-            }
-            case INTERMEDIATE -> {
-                width = 16;
-                height = 16;
-            }
-            case EXPERT -> {
-                width = 30;
-                height = 16;
-            }
-            default -> throw new IllegalStateException("Unexpected value: " + difficulty);
-        }
-        this.board = new Board(width, height);
+        board = new Board(difficulty.getWidth(), difficulty.getHeight());
     }
 
-    public void start() throws InterruptedException {
+    public void start() {
         display = new Display(board);
         display.displayBoard();
         displayHelp(true);
-        try {
-            do { // We will break out of this loop when the game is over.
-                gameLoop();
-            } while (!gameOver);
-        } finally {
-            if (scanner != null) {
-                scanner.close();
-            }
+        gameLoop();
+        if (scanner != null) {
+            scanner.close();
         }
     }
 
-    private void gameLoop() throws InterruptedException {
+    private void gameLoop() {
         scanner = new Scanner(System.in);
-        playerHasNotDoneFirstReveal = true;
+        playerHasNotMadeFirstReveal = true;
 
         while (!gameOver) {
             display.displayMessage("Enter a command: ");
             String input = scanner.nextLine().trim();
-
-            switch (input.toLowerCase()) {
-                case "quit" -> gameOver = true;
-                case "help" -> displayHelp(false);
-                case "restart" -> restartGame();
-                case "new game" -> startNewGame();
-                default -> handleInput(input);
-            }
+            handleCommand(input);
         }
     }
 
-    private void displayHelp(Boolean start) {
+    private void displayHelp(boolean start) {
         if (start) display.displayMessage("Type 'help' for a list of commands.");
         display.displayMessage("Type 'quit' to quit the game.");
         if (!start){
@@ -124,7 +82,17 @@ public class Game {
         display.displayMessage("Enter 'f x y' to flag/flag a cell.");
     }
 
-    private void handleInput(String input) throws InterruptedException {
+    private void handleCommand(String input) {
+        switch (input.toLowerCase()) {
+            case "quit" -> gameOver = true;
+            case "help" -> displayHelp(false);
+            case "restart" -> resetGameWithCurrentDifficulty();
+            case "new game" -> resetGameWithNewDifficulty();
+            default -> handlePlayerMove(input);
+        }
+    }
+
+    private void handlePlayerMove(String input) {
         String[] tokens = input.split(" ");
 
         if (tokens.length != 3) {
@@ -134,46 +102,43 @@ public class Game {
 
         Coordinate coordinate = decrementBothAxesAndExtractCoordinate(tokens[1], tokens[2]);
         if (coordinate == null || !board.isInBounds(coordinate)) {
-            display.displayMessage("Invalid coordinates. Please try again.");
+            display.displayMessage((coordinate == null) ? "Out of bounds ": "Invalid " +"coordinates. Please try again.");
             return;
         }
 
         switch (tokens[0].toLowerCase()) {
             case "f" -> {
-                board.getCell(coordinate).toggleFlag();
-                display.clearScreen();
-                display.displayBoard();
+                toggleCellFlag(coordinate);
+                display.clearScreenAndDisplayBoard();
             }
             case "r" -> handleReveal(coordinate);
             default -> display.displayMessage("Unknown command. Type 'help' for guidance.");
         }
     }
 
-    private void restartGame()  {
+    private void toggleCellFlag(Coordinate coordinate) {
+        board.getCell(coordinate).toggleFlag();
+    }
+
+    private void reinitializeGame() {
         gameOver = false;
-        playerWon = false;
-        playerHasNotDoneFirstReveal = true;
+        playerHasNotMadeFirstReveal = true;
 
         setupNewBoard();
         display.setBoard(board);
-
-        display.clearScreen();
-        display.displayBoard();
+        display.clearScreenAndDisplayBoard();
         displayHelp(true);
     }
 
-    private void startNewGame()  {
-        gameOver = false;
-        playerWon = false;
-        playerHasNotDoneFirstReveal = true;
+    private void resetGameWithCurrentDifficulty()  {
+        reinitializeGame();
+    }
 
+    private void resetGameWithNewDifficulty()  {
         display.clearScreen();
         establishDifficulty();
         setNumMines();
-        setupNewBoard();
-        display.setBoard(board);
-        display.displayBoard();
-        displayHelp(true);
+        reinitializeGame();
     }
 
     Coordinate decrementBothAxesAndExtractCoordinate(String xStr, String yStr) {
@@ -186,41 +151,56 @@ public class Game {
         }
     }
 
-    private void handleReveal(Coordinate coordinate) throws InterruptedException {
-        if (board.getCell(coordinate).isRevealed()) {
+    private void handleReveal(Coordinate coordinate) {
+        if (isCellAlreadyRevealed(coordinate)) {
             display.displayMessage("Cell is already revealed.");
             return;
         }
 
-        if (playerHasNotDoneFirstReveal) {
-            initialiseMineLocations(coordinate);
+        if (playerHasNotMadeFirstReveal) handleFirstReveal(coordinate);
+
+        if (isMine(coordinate)) {
+            handleMineReveal(coordinate);
+        } else {
+            handleSafeCellReveal(coordinate);
+        }
+    }
+
+    private boolean isCellAlreadyRevealed(Coordinate coordinate) {
+        return board.getCell(coordinate).isRevealed();
+    }
+
+    private void handleFirstReveal(Coordinate coordinate) {
+            initialiseMineLocationsExcludingPassedInLocation(coordinate);
             placeMines(mineLocations);
             board.setAdjacentMineCounts();
-            playerHasNotDoneFirstReveal = false;
-        }
+            playerHasNotMadeFirstReveal = false;
+    }
 
-        boolean playerHitMine = playerHitMine(coordinate);
-
-        revealCell(coordinate);
-        if (board.getCell(coordinate).hasNoAdjacentMines() && !playerHitMine) {
-            beginRevealChain(coordinate);
-        }
+    private void handleSafeCellReveal(Coordinate coordinate) {
+        revealCellThenBeginRevealChainIfNecessary(coordinate);
 
         display.clearScreen();
 
-        if (playerHitMine) {
-            board.getCell(coordinate).trigger();
-            playerWon = false;
-            display.displayMessage("You triggered a mine" + coordinate.toString() + "! Game over.");
-            sleep(5000);
-            display.clearScreen();
-            display.displayBoard();
-            endGame();
-        } else if (allSafeCellsRevealed()) {
-            playerWon = true;
-            endGame();
+        if (allSafeCellsRevealed()) {
+            concludeGame(true);
         } else {
             display.displayBoard();
+        }
+    }
+
+    private void handleMineReveal(Coordinate coordinate) {
+        board.getCell(coordinate).trigger();
+        display.displayMessage("You triggered a mine at " + coordinate.toString() + "! Game over.");
+        sleep(5000);
+        display.clearScreenAndDisplayBoard();
+        concludeGame(false);
+    }
+
+    private void revealCellThenBeginRevealChainIfNecessary(Coordinate coordinate) {
+        revealCell(coordinate);
+        if (board.getCell(coordinate).hasNoAdjacentMines()) {
+            beginRevealChain(coordinate);
         }
     }
 
@@ -243,7 +223,15 @@ public class Game {
         }
     }
 
-    private boolean playerHitMine(Coordinate coordinate) {
+    private void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            // Do nothing
+        }
+    }
+
+    private boolean isMine(Coordinate coordinate) {
         return board.getCell(coordinate).isMine();
     }
 
@@ -251,13 +239,13 @@ public class Game {
         return board.allCellsRevealed();
     }
 
-    private void initialiseMineLocations(Coordinate firstMoveCoordinate) {
+    private void initialiseMineLocationsExcludingPassedInLocation(Coordinate firstMoveCoordinate) {
+        mineLocations = new ArrayList<>();
         int numMineLocationsAdded = 0;
         while (numMineLocationsAdded < numMines) {
             int x = randomNumberGenerator.nextInt(board.getWidth());
             int y = randomNumberGenerator.nextInt(board.getHeight());
             Coordinate location = new Coordinate(x, y);
-            if (!board.isInBounds(location)) System.out.println("Location: "+ location.toString() +"Out of bounds.");
             if (!mineLocations.contains(location) && !location.equals(firstMoveCoordinate)){
                 mineLocations.add(location);
                 numMineLocationsAdded++;
@@ -265,51 +253,61 @@ public class Game {
         }
     }
 
-    private void endGame() throws InterruptedException {
+    private void concludeGame(boolean playerWon) {
         gameOver = true;
         if (playerWon) {
             display.displayMessage("You win! Congratulations!");
             sleep(5000);
+        } else {
+            doMineTriggeredSequence();
         }
-        else {
-            for (Coordinate mineLocation : mineLocations){
-                board.getCell(mineLocation).reveal();
-                display.clearScreen();
-                display.displayBoard();
-                sleep(100);
-            }
-            triggerAllMines();
-            display.clearScreen();
-            display.displayBoard();
-            sleep(2500);
-        }
-
         revealAllCells();
-        display.clearScreen();
-        display.displayBoard();
+        display.clearScreenAndDisplayBoard();
+        displayGameConclusionHelp();
+        getValidEndGameInputFromUser();
+    }
+
+    private void displayGameConclusionHelp() {
         display.displayMessage("Enter 'quit' to quit.");
         display.displayMessage("Enter 'restart' to restart the game with the same difficulty.");
         display.displayMessage("Enter 'new game' to start a new game with a different difficulty.");
+    }
+
+    private void getValidEndGameInputFromUser() {
         boolean validInput = false;
-        while (!validInput){
+        while (!validInput) {
             String input = scanner.nextLine().trim();
-            switch (input.toLowerCase()){
+            switch (input.toLowerCase()) {
                 case "quit" -> {
                     gameOver = true;
                     validInput = true;
                 }
                 case "restart" -> {
-                    restartGame();
+                    resetGameWithCurrentDifficulty();
                     validInput = true;
                 }
                 case "new game" -> {
-                    startNewGame();
+                    resetGameWithNewDifficulty();
                     validInput = true;
                 }
                 default -> display.displayMessage("Invalid input. Please try again.");
             }
         }
+    }
 
+    private void doMineTriggeredSequence() {
+        for (Coordinate mineLocation : mineLocations) {
+            board.getCell(mineLocation).reveal();
+            display.clearScreenAndDisplayBoard();
+            switch (difficulty) {
+                case BEGINNER -> sleep(500);
+                case INTERMEDIATE -> sleep(250);
+                case EXPERT -> sleep(100);
+            }
+        }
+        triggerAllMines();
+        display.clearScreenAndDisplayBoard();
+        sleep(2500);
     }
 
     private void triggerAllMines() {

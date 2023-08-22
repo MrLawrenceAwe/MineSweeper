@@ -64,4 +64,9 @@ public class Display {
     public void setBoard(Board board) {
         this.board = board;
     }
+
+    public void clearScreenAndDisplayBoard() {
+        clearScreen();
+        displayBoard();
+    }
 }
