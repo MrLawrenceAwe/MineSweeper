@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Game.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">MineSweeper</a> &gt; <a href="index.source.html" class="el_package">default</a> &gt; <span class="el_source">Game.java</span></div><h1>Game.java</h1><pre class="source lang-java linenums">import java.util.*;
+
+public class Game {
+    private boolean gameOver;
+    private Board board;
+    private Difficulty difficulty;
+    private int numMines;
+<span class="nc" id="L8">    private final UserInterface userInterface = new UserInterface();</span>
+<span class="nc" id="L9">    private final Random randomNumberGenerator = new Random();</span>
+    private ArrayList&lt;Coordinate&gt; mineLocations;
+    private boolean playerHasNotMadeFirstReveal;
+
+<span class="nc" id="L13">    public Game() {</span>
+<span class="nc" id="L14">        userInterface.displayMessage(&quot;Welcome to Minesweeper!&quot;);</span>
+<span class="nc" id="L15">        establishDifficulty();</span>
+<span class="nc" id="L16">        this.numMines = difficulty.getNumMines();</span>
+<span class="nc" id="L17">        board = new Board(difficulty.getWidth(), difficulty.getHeight());</span>
+<span class="nc" id="L18">    }</span>
+
+    private static final String BEGINNER = &quot;beginner&quot;;
+    private static final String INTERMEDIATE = &quot;intermediate&quot;;
+    private static final String EXPERT = &quot;expert&quot;;
+
+    private void establishDifficulty() {
+        while (true) {
+<span class="nc" id="L26">            userInterface.displayMessage(&quot;Please select a difficulty. 'Beginner', 'Intermediate', or 'Expert'.&quot;);</span>
+<span class="nc" id="L27">            String input = userInterface.getNextLineFromUser().toLowerCase().trim();</span>
+
+<span class="nc bnc" id="L29" title="All 2 branches missed.">            if (isInputValidDifficulty(input)) {</span>
+<span class="nc" id="L30">                difficulty = Difficulty.valueOf(input.toUpperCase());</span>
+<span class="nc" id="L31">                return;</span>
+            }
+
+<span class="nc" id="L34">            userInterface.displayMessage(&quot;Invalid difficulty. Please try again.&quot;);</span>
+<span class="nc" id="L35">        }</span>
+    }
+
+    private boolean isInputValidDifficulty(String input) {
+<span class="nc bnc" id="L39" title="All 6 branches missed.">        return BEGINNER.equals(input) || INTERMEDIATE.equals(input) || EXPERT.equals(input);</span>
+    }
+
+    public void start() {
+<span class="nc" id="L43">        userInterface.setBoard(board);</span>
+<span class="nc" id="L44">        userInterface.displayBoard();</span>
+<span class="nc" id="L45">        displayHelp(true);</span>
+<span class="nc" id="L46">        gameLoop();</span>
+<span class="nc bnc" id="L47" title="All 2 branches missed.">        if (userInterface.getScanner() != null) {</span>
+<span class="nc" id="L48">            userInterface.closeScanner();</span>
+        }
+<span class="nc" id="L50">    }</span>
+
+    private void gameLoop() {
+<span class="nc" id="L53">        playerHasNotMadeFirstReveal = true;</span>
+
+<span class="nc bnc" id="L55" title="All 2 branches missed.">        while (!gameOver) {</span>
+<span class="nc" id="L56">            userInterface.displayMessage(&quot;Enter a command: &quot;);</span>
+<span class="nc" id="L57">            String input = userInterface.getNextLineFromUser().trim();</span>
+<span class="nc" id="L58">            handleCommand(input);</span>
+<span class="nc" id="L59">        }</span>
+<span class="nc" id="L60">    }</span>
+
+    private void displayHelp(boolean start) {
+<span class="nc bnc" id="L63" title="All 2 branches missed.">        if (start) userInterface.displayMessage(&quot;Type 'help' for a list of commands.&quot;);</span>
+<span class="nc" id="L64">        userInterface.displayMessage(&quot;Type 'quit' to quit the game.&quot;);</span>
+<span class="nc bnc" id="L65" title="All 2 branches missed.">        if (!start){</span>
+<span class="nc" id="L66">            userInterface.displayMessage(&quot;Type 'restart' to restart the game with the same difficulty.&quot;);</span>
+<span class="nc" id="L67">            userInterface.displayMessage(&quot;Type 'new game' to start a new game with a different difficulty.&quot;);</span>
+        }
+<span class="nc" id="L69">        userInterface.displayMessage(&quot;Enter 'r x y' to reveal a cell.&quot;);</span>
+<span class="nc" id="L70">        userInterface.displayMessage(&quot;Enter 'f x y' to flag/flag a cell.&quot;);</span>
+<span class="nc" id="L71">    }</span>
+
+    private void handleCommand(String input) {
+<span class="nc bnc" id="L74" title="All 5 branches missed.">        switch (input.toLowerCase()) {</span>
+<span class="nc" id="L75">            case &quot;quit&quot; -&gt; gameOver = true;</span>
+<span class="nc" id="L76">            case &quot;help&quot; -&gt; displayHelp(false);</span>
+<span class="nc" id="L77">            case &quot;restart&quot; -&gt; resetGameWithCurrentDifficulty();</span>
+<span class="nc" id="L78">            case &quot;new game&quot; -&gt; resetGameWithNewDifficulty();</span>
+<span class="nc" id="L79">            default -&gt; handlePlayerMove(input);</span>
+        }
+<span class="nc" id="L81">    }</span>
+
+    private void handlePlayerMove(String input) {
+<span class="nc" id="L84">        String[] tokens = input.split(&quot; &quot;);</span>
+
+<span class="nc bnc" id="L86" title="All 2 branches missed.">        if (tokens.length != 3) {</span>
+<span class="nc" id="L87">            userInterface.displayMessage(&quot;Invalid input. Please try again.&quot;);</span>
+<span class="nc" id="L88">            return;</span>
+        }
+
+<span class="nc" id="L91">        Coordinate coordinate = decrementBothAxesAndExtractCoordinate(tokens[1], tokens[2]);</span>
+<span class="nc bnc" id="L92" title="All 4 branches missed.">        if (coordinate == null || !board.isInBounds(coordinate)) {</span>
+<span class="nc bnc" id="L93" title="All 2 branches missed.">            userInterface.displayMessage((coordinate != null) ? &quot;Out of bounds &quot;: &quot;Invalid &quot; +&quot;coordinates. Please try again.&quot;);</span>
+<span class="nc" id="L94">            return;</span>
+        }
+
+<span class="nc bnc" id="L97" title="All 3 branches missed.">        switch (tokens[0].toLowerCase()) {</span>
+            case &quot;f&quot; -&gt; {
+<span class="nc" id="L99">                toggleCellFlag(coordinate);</span>
+<span class="nc" id="L100">                userInterface.clearScreenAndDisplayBoard();</span>
+<span class="nc" id="L101">            }</span>
+<span class="nc" id="L102">            case &quot;r&quot; -&gt; handleReveal(coordinate);</span>
+<span class="nc" id="L103">            default -&gt; userInterface.displayMessage(&quot;Unknown command. Type 'help' for guidance.&quot;);</span>
+        }
+<span class="nc" id="L105">    }</span>
+
+    private void toggleCellFlag(Coordinate coordinate) {
+<span class="nc" id="L108">        board.getCell(coordinate).toggleFlag();</span>
+<span class="nc" id="L109">    }</span>
+
+    private void reinitializeGame() {
+<span class="nc" id="L112">        gameOver = false;</span>
+<span class="nc" id="L113">        playerHasNotMadeFirstReveal = true;</span>
+
+<span class="nc" id="L115">        board = new Board(difficulty.getWidth(), difficulty.getHeight());</span>
+<span class="nc" id="L116">        userInterface.setBoard(board);</span>
+<span class="nc" id="L117">        userInterface.clearScreenAndDisplayBoard();</span>
+<span class="nc" id="L118">        displayHelp(true);</span>
+<span class="nc" id="L119">    }</span>
+
+    private void resetGameWithCurrentDifficulty()  {
+<span class="nc" id="L122">        reinitializeGame();</span>
+<span class="nc" id="L123">    }</span>
+
+    private void resetGameWithNewDifficulty()  {
+<span class="nc" id="L126">        userInterface.clearScreen();</span>
+<span class="nc" id="L127">        establishDifficulty();</span>
+<span class="nc" id="L128">        this.numMines = difficulty.getNumMines();</span>
+<span class="nc" id="L129">        reinitializeGame();</span>
+<span class="nc" id="L130">    }</span>
+
+    Coordinate decrementBothAxesAndExtractCoordinate(String xStr, String yStr) {
+        try {
+<span class="nc" id="L134">            int x = Integer.parseInt(xStr.trim()) - 1;</span>
+<span class="nc" id="L135">            int y = Integer.parseInt(yStr.trim()) - 1;</span>
+<span class="nc" id="L136">            return new Coordinate(x, y);</span>
+<span class="nc" id="L137">        } catch (NumberFormatException e) {</span>
+<span class="nc" id="L138">            return null;</span>
+        }
+    }
+
+    private void handleReveal(Coordinate coordinate) {
+<span class="nc bnc" id="L143" title="All 2 branches missed.">        if (isCellAlreadyRevealed(coordinate)) {</span>
+<span class="nc" id="L144">            userInterface.displayMessage(&quot;Cell is already revealed.&quot;);</span>
+<span class="nc" id="L145">            return;</span>
+        }
+
+<span class="nc bnc" id="L148" title="All 2 branches missed.">        if (playerHasNotMadeFirstReveal) handleFirstReveal(coordinate);</span>
+
+<span class="nc bnc" id="L150" title="All 2 branches missed.">        if (cellAtLocationIsMine(coordinate)) {</span>
+<span class="nc" id="L151">            handleMineReveal(coordinate);</span>
+        } else {
+<span class="nc" id="L153">            handleSafeCellReveal(coordinate);</span>
+        }
+<span class="nc" id="L155">    }</span>
+
+    private boolean isCellAlreadyRevealed(Coordinate coordinate) {
+<span class="nc" id="L158">        return board.getCell(coordinate).isRevealed();</span>
+    }
+
+    private void handleFirstReveal(Coordinate coordinate) {
+<span class="nc" id="L162">            initialiseMineLocationsExcludingPassedInLocation(coordinate);</span>
+<span class="nc" id="L163">            placeMines(mineLocations);</span>
+<span class="nc" id="L164">            board.setAdjacentMineCounts();</span>
+<span class="nc" id="L165">            playerHasNotMadeFirstReveal = false;</span>
+<span class="nc" id="L166">    }</span>
+
+    private void handleSafeCellReveal(Coordinate coordinate) {
+<span class="nc" id="L169">        revealCellThenChainRevealIfNecessary(coordinate);</span>
+
+<span class="nc" id="L171">        userInterface.clearScreen();</span>
+
+<span class="nc bnc" id="L173" title="All 2 branches missed.">        if (allSafeCellsRevealed()) {</span>
+<span class="nc" id="L174">            concludeGame(true);</span>
+        } else {
+<span class="nc" id="L176">            userInterface.displayBoard();</span>
+        }
+<span class="nc" id="L178">    }</span>
+
+    private void handleMineReveal(Coordinate coordinate) {
+<span class="nc" id="L181">        board.getCell(coordinate).trigger();</span>
+<span class="nc" id="L182">        userInterface.displayMessage(&quot;You triggered a mine at &quot; + coordinate.toString() + &quot;! Game over.&quot;);</span>
+<span class="nc" id="L183">        sleep(5000);</span>
+<span class="nc" id="L184">        userInterface.clearScreenAndDisplayBoard();</span>
+<span class="nc" id="L185">        concludeGame(false);</span>
+<span class="nc" id="L186">    }</span>
+
+    private void revealCellThenChainRevealIfNecessary(Coordinate coordinate) {
+<span class="nc" id="L189">        revealCell(coordinate);</span>
+<span class="nc bnc" id="L190" title="All 2 branches missed.">        if (cellAtLocationHasNoAdjacentMines(coordinate)) {</span>
+<span class="nc" id="L191">            chainReveal(coordinate);</span>
+        }
+<span class="nc" id="L193">    }</span>
+
+    private void chainReveal(Coordinate coordinate)  {
+<span class="nc" id="L196">        Queue&lt;Coordinate&gt; queue = new LinkedList&lt;&gt;();</span>
+<span class="nc" id="L197">        queue.add(coordinate);</span>
+
+<span class="nc bnc" id="L199" title="All 2 branches missed.">        while (!queue.isEmpty()) {</span>
+<span class="nc" id="L200">            Coordinate currentCoordinate = queue.poll();</span>
+
+<span class="nc" id="L202">            List&lt;Coordinate&gt; adjacentCoordinates = currentCoordinate.getAdjacentCoordinates();</span>
+<span class="nc bnc" id="L203" title="All 2 branches missed.">            for (Coordinate adjacentCoordinate : adjacentCoordinates) {</span>
+<span class="nc bnc" id="L204" title="All 6 branches missed.">                if (board.isInBounds(adjacentCoordinate) &amp;&amp; !cellAtLocationIsRevealed(adjacentCoordinate) &amp;&amp; !cellAtLocationIsMine(adjacentCoordinate)) {</span>
+<span class="nc" id="L205">                    revealCell(adjacentCoordinate);</span>
+<span class="nc bnc" id="L206" title="All 2 branches missed.">                    if (cellAtLocationHasNoAdjacentMines(adjacentCoordinate)) {</span>
+<span class="nc" id="L207">                        queue.add(adjacentCoordinate);</span>
+                    }
+                }
+<span class="nc" id="L210">            }</span>
+<span class="nc" id="L211">        }</span>
+<span class="nc" id="L212">    }</span>
+
+    private boolean cellAtLocationIsRevealed(Coordinate adjacentCoordinate) {
+<span class="nc" id="L215">        return board.getCell(adjacentCoordinate).isRevealed();</span>
+    }
+
+    private boolean cellAtLocationHasNoAdjacentMines(Coordinate adjacentCoordinate) {
+<span class="nc" id="L219">        return board.getCell(adjacentCoordinate).hasNoAdjacentMines();</span>
+    }
+
+    private void sleep(long millis) {
+        try {
+<span class="nc" id="L224">            Thread.sleep(millis);</span>
+<span class="nc" id="L225">        } catch (InterruptedException ignored) {</span>
+            // Do nothing
+<span class="nc" id="L227">        }</span>
+<span class="nc" id="L228">    }</span>
+
+    private boolean cellAtLocationIsMine(Coordinate coordinate) {
+<span class="nc" id="L231">        return board.getCell(coordinate).isMine();</span>
+    }
+
+    private boolean allSafeCellsRevealed() {
+<span class="nc" id="L235">        return board.allSafeCellsRevealed();</span>
+    }
+
+    private void initialiseMineLocationsExcludingPassedInLocation(Coordinate firstRevealCoordinate) {
+<span class="nc" id="L239">        mineLocations = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L240">        int numMineLocationsAdded = 0;</span>
+<span class="nc bnc" id="L241" title="All 2 branches missed.">        while (numMineLocationsAdded &lt; numMines) {</span>
+<span class="nc" id="L242">            int x = randomNumberGenerator.nextInt(board.getWidth());</span>
+<span class="nc" id="L243">            int y = randomNumberGenerator.nextInt(board.getHeight());</span>
+<span class="nc" id="L244">            Coordinate location = new Coordinate(x, y);</span>
+<span class="nc bnc" id="L245" title="All 4 branches missed.">            if (!mineLocations.contains(location) &amp;&amp; !location.equals(firstRevealCoordinate)){</span>
+<span class="nc" id="L246">                mineLocations.add(location);</span>
+<span class="nc" id="L247">                numMineLocationsAdded++;</span>
+            }
+<span class="nc" id="L249">        }</span>
+<span class="nc" id="L250">    }</span>
+
+    private void concludeGame(boolean playerWon) {
+<span class="nc" id="L253">        gameOver = true;</span>
+<span class="nc bnc" id="L254" title="All 2 branches missed.">        if (playerWon) {</span>
+<span class="nc" id="L255">            userInterface.displayMessage(&quot;You win! Congratulations!&quot;);</span>
+<span class="nc" id="L256">            sleep(5000);</span>
+        } else {
+<span class="nc" id="L258">            doMineTriggeredSequence();</span>
+        }
+<span class="nc" id="L260">        revealAllCells();</span>
+<span class="nc" id="L261">        userInterface.clearScreenAndDisplayBoard();</span>
+<span class="nc" id="L262">        displayGameConclusionHelp();</span>
+<span class="nc" id="L263">        getValidGameConclusionInputFromUser();</span>
+<span class="nc" id="L264">    }</span>
+
+    private void displayGameConclusionHelp() {
+<span class="nc" id="L267">        userInterface.displayMessage(&quot;Enter 'quit' to quit.&quot;);</span>
+<span class="nc" id="L268">        userInterface.displayMessage(&quot;Enter 'restart' to restart the game with the same difficulty.&quot;);</span>
+<span class="nc" id="L269">        userInterface.displayMessage(&quot;Enter 'new game' to start a new game with a different difficulty.&quot;);</span>
+<span class="nc" id="L270">    }</span>
+
+    private void getValidGameConclusionInputFromUser() {
+<span class="nc" id="L273">        boolean validInput = false;</span>
+<span class="nc bnc" id="L274" title="All 2 branches missed.">        while (!validInput) {</span>
+<span class="nc" id="L275">            String input = userInterface.getNextLineFromUser().trim();</span>
+<span class="nc bnc" id="L276" title="All 4 branches missed.">            switch (input.toLowerCase()) {</span>
+                case &quot;quit&quot; -&gt; {
+<span class="nc" id="L278">                    gameOver = true;</span>
+<span class="nc" id="L279">                    validInput = true;</span>
+<span class="nc" id="L280">                }</span>
+                case &quot;restart&quot; -&gt; {
+<span class="nc" id="L282">                    resetGameWithCurrentDifficulty();</span>
+<span class="nc" id="L283">                    validInput = true;</span>
+<span class="nc" id="L284">                }</span>
+                case &quot;new game&quot; -&gt; {
+<span class="nc" id="L286">                    resetGameWithNewDifficulty();</span>
+<span class="nc" id="L287">                    validInput = true;</span>
+<span class="nc" id="L288">                }</span>
+<span class="nc" id="L289">                default -&gt; userInterface.displayMessage(&quot;Invalid input. Please try again.&quot;);</span>
+            }
+<span class="nc" id="L291">        }</span>
+<span class="nc" id="L292">    }</span>
+
+    private void doMineTriggeredSequence() {
+<span class="nc bnc" id="L295" title="All 2 branches missed.">        for (Coordinate mineLocation : mineLocations) {</span>
+<span class="nc" id="L296">            board.getCell(mineLocation).reveal();</span>
+<span class="nc" id="L297">            userInterface.clearScreenAndDisplayBoard();</span>
+<span class="nc bnc" id="L298" title="All 4 branches missed.">            switch (difficulty) {</span>
+<span class="nc" id="L299">                case BEGINNER -&gt; sleep(500);</span>
+<span class="nc" id="L300">                case INTERMEDIATE -&gt; sleep(200);</span>
+<span class="nc" id="L301">                case EXPERT -&gt; sleep(50);</span>
+            }
+<span class="nc" id="L303">        }</span>
+<span class="nc" id="L304">        triggerAllMines();</span>
+<span class="nc" id="L305">        userInterface.clearScreenAndDisplayBoard();</span>
+<span class="nc" id="L306">        sleep(2500);</span>
+<span class="nc" id="L307">    }</span>
+
+    private void triggerAllMines() {
+<span class="nc bnc" id="L310" title="All 2 branches missed.">        for (Coordinate mineLocation : mineLocations) board.getCell(mineLocation).trigger();</span>
+<span class="nc" id="L311">    }</span>
+
+    private void placeMines(List&lt;Coordinate&gt; locations){
+<span class="nc bnc" id="L314" title="All 2 branches missed.">        for (Coordinate location : locations) {</span>
+<span class="nc" id="L315">            placeMine(location);</span>
+<span class="nc" id="L316">        }</span>
+<span class="nc" id="L317">    }</span>
+
+    private void placeMine(Coordinate mineLocation) {
+<span class="nc" id="L320">        board.getCell(mineLocation).setMine(true);</span>
+<span class="nc" id="L321">    }</span>
+
+    private void revealAllCells(){
+<span class="nc bnc" id="L324" title="All 2 branches missed.">        for (int x = 0; x &lt; board.getWidth(); x++){</span>
+<span class="nc bnc" id="L325" title="All 2 branches missed.">            for (int y = 0; y &lt; board.getHeight(); y++){</span>
+<span class="nc" id="L326">                revealCell(new Coordinate(x,y));</span>
+            }
+        }
+<span class="nc" id="L329">    }</span>
+
+    private void revealCell(Coordinate coordinate) {
+<span class="nc" id="L332">        board.getCell(coordinate).reveal();</span>
+<span class="nc" id="L333">    }</span>
+
+    public static int returnArg(int arg) {
+<span class="fc" id="L336">        return arg;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

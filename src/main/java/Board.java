@@ -57,10 +57,10 @@ public class Board {
         return (coordinate.y >= 0 && coordinate.y < height) && (coordinate.x >= 0 && coordinate.x < width);
     }
 
-    public boolean allCellsRevealed(){
+    public boolean allSafeCellsRevealed(){
         for (int row = 0; row < height; row++){
             for (int col = 0; col < width; col++){
-                if (!cells[row][col].isRevealed()){
+                if (!cells[row][col].isRevealed() && !cells[row][col].isMine()){
                     return false;
                 }
             }

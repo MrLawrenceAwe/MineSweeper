@@ -1,0 +1,9 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+MineSweeper,default,Board,181,0,30,0,32,0,24,0,9,0
+MineSweeper,default,Game,732,2,82,0,199,1,80,1,35,1
+MineSweeper,default,Coordinate,104,0,18,0,16,0,14,0,5,0
+MineSweeper,default,Difficulty,53,0,0,0,12,0,5,0,5,0
+MineSweeper,default,UserInterface,202,0,18,0,43,0,19,0,10,0
+MineSweeper,default,Cell,65,0,12,0,19,0,16,0,10,0
+MineSweeper,default,Main,10,0,0,0,4,0,2,0,2,0
+MineSweeper,default,InvalidMinePlacementLocation,13,0,0,0,6,0,3,0,3,0

@@ -1,11 +1,15 @@
-public class Display {
-    private Board board;
+import java.util.Scanner;
 
-    public Display(Board board){
-        this.board = board;
+public class UserInterface {
+    private Board board;
+    private final Scanner scanner;
+
+    public UserInterface(){
+        scanner = new Scanner(System.in);
     }
 
     public void displayBoard() {
+        if (board == null) return;
         int maxWidth = Integer.toString(Math.max(board.getWidth(), board.getHeight())).length();
 
         printSpaces(maxWidth + 1);
@@ -68,5 +72,17 @@ public class Display {
     public void clearScreenAndDisplayBoard() {
         clearScreen();
         displayBoard();
+    }
+
+    public String getNextLineFromUser() {
+        return scanner.nextLine();
+    }
+
+    public Scanner getScanner() {
+        return scanner;
+    }
+
+    public void closeScanner() {
+        scanner.close();
     }
 }

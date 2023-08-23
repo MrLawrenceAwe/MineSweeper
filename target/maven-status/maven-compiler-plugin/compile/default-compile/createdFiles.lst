@@ -1,9 +1,9 @@
 Cell.class
 Main.class
-Display.class
 Board.class
 Coordinate.class
+UserInterface.class
 Game$1.class
 InvalidMinePlacementLocation.class
+Difficulty.class
 Game.class
-Game$Difficulty.class
